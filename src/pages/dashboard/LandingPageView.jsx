@@ -1,11 +1,13 @@
+// HeroSection(1).jsx design + existing dynamic product pricing/shipping/order API.
 import React, { useState } from 'react';
+import { ShoppingCart, Package, ShieldCheck, Feather } from 'lucide-react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { FiMenu, FiX, FiShoppingCart, FiPackage, FiShield, FiFeather, FiTruck, FiUser, FiPhone, FiMapPin, FiMinus, FiPlus, FiTool, FiCheckCircle } from 'react-icons/fi';
+import { FiMenu, FiX, FiShoppingCart, FiPackage, FiShield, FiTruck, FiUser, FiPhone, FiMapPin, FiMinus, FiPlus, FiCheckCircle } from 'react-icons/fi';
 import useAxiosSecure from '../../hooks/useAxiosSecure';
 
 const money = (n) => `৳${Number(n || 0).toLocaleString('en-BD')}`;
-// UI-only mirror of utils/pricing.js; order totals remain authoritative on the server.
+
 const displayedUnitPrice = (product) => {
   const base = Number(product?.price || 0);
   if (product?.flashSale?.enabled && product.flashSale.salePrice && Number(product.flashSale.salePrice) < base) {
@@ -14,6 +16,7 @@ const displayedUnitPrice = (product) => {
   const discount = Number(product?.discount || 0);
   return discount > 0 ? Math.max(0, Math.round(base * (1 - discount / 100))) : base;
 };
+
 const displayedShipping = ({ subtotal, selectedOption, district, settings }) => {
   const base = Number(selectedOption === 'inside' ? settings?.insideDhakaRate ?? 60 : settings?.outsideDhakaRate ?? 120);
   const campaign = settings?.campaign || {};
@@ -23,22 +26,51 @@ const displayedShipping = ({ subtotal, selectedOption, district, settings }) => 
   const freeDistrict = (settings?.freeForDistricts || []).map(String).includes(String(district));
   return threshold > 0 && subtotal >= threshold || (district && freeDistrict) ? 0 : Math.max(0, Math.round(base));
 };
+
+// Here is your new PNG logo URL updated
+const BRAND_LOGO = 'https://i.ibb.co.com/7dTdpYx1/logo.png';
+const IMAGE_ONE = 'https://i.ibb.co.com/NnSY1yYs/860410249-122126245143472673-1105257856993403619-n.jpg';
+const IMAGE_TWO = 'https://i.ibb.co.com/ZRqtTLPY/ssssss.jpg';
 const fallbackOne = 'https://i.ibb.co.com/NnSY1yYs/860410249-122126245143472673-1105257856993403619-n.jpg';
 const fallbackTwo = 'https://i.ibb.co.com/0pgKx5GY/859151853-122126243925472673-6616497023726215156-n.jpg';
-const fallbackExtra = 'https://i.ibb.co.com/ZRqtTLPY/ssssss.jpg';
+
 const defaultDetails = [
   { title: 'মজবুত 600D', subtitle: 'অক্সফোর্ড ফ্যাব্রিক', image: fallbackOne },
   { title: 'টেকসই', subtitle: 'ক্লিপ ও বেল্ট', image: fallbackTwo },
   { title: 'বহু পকেট', subtitle: 'সব টুল রাখুন', image: fallbackOne },
   { title: 'অতিরিক্ত পাউচ', subtitle: 'ও ফ্রি হুক', image: fallbackTwo }
 ];
+
 const defaultUsers = [
   { name: 'ইলেকট্রিশিয়ান', image: fallbackOne },
   { name: 'কার্পেন্টার', image: 'https://i.ibb.co.com/fP1c8Xr/cover.jpg' },
   { name: 'প্লাম্বার/মেকানিক্যাল টেকনিশিয়ান', image: fallbackOne },
   { name: 'প্লাম্বার', image: 'https://i.ibb.co.com/fP1c8Xr/cover.jpg' }
 ];
-function InfoIcon({ Icon, title, description }) { return <div className="flex flex-1 flex-col items-center text-center"><span className="mb-2 inline-flex size-12 items-center justify-center rounded-full bg-neutral-950 text-white"><Icon size={24} /></span><span className="text-[14px] font-extrabold leading-tight">{title}</span>{description && <span className="text-[12px] font-semibold leading-tight">{description}</span>}</div> }
+
+function InfoIcon({ Icon, title, description }) { 
+  return (
+    <div className="flex flex-1 flex-col items-center text-center">
+      <span className="mb-2 inline-flex size-12 items-center justify-center rounded-full bg-neutral-950 text-white">
+        <Icon size={24} />
+      </span>
+      <span className="text-[14px] font-extrabold leading-tight">{title}</span>
+      {description && <span className="text-[12px] font-semibold leading-tight">{description}</span>}
+    </div>
+  );
+}
+
+function HeroIconText({ Icon, title, description }) {
+  return (
+    <div className="flex flex-1 flex-col items-center text-center">
+      <span className="mb-1.5 inline-flex size-10 items-center justify-center rounded-full bg-neutral-950 text-white sm:mb-2 sm:size-12">
+        <Icon className="size-5 sm:size-6" />
+      </span>
+      <span className="text-[12px] font-extrabold leading-tight sm:text-[14px]">{title}</span>
+      {description && <span className="text-[11px] font-semibold leading-tight sm:text-[12px]">{description}</span>}
+    </div>
+  );
+}
 
 export default function LandingPageView() {
   const { slug } = useParams();
@@ -51,11 +83,13 @@ export default function LandingPageView() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [form, setForm] = useState({ name: '', mobile: '', address: '' });
   const homepage = location.pathname === '/';
+
   const { data: page, isLoading, isError } = useQuery({
     queryKey: ['landing-page', homepage ? 'homepage' : slug],
     enabled: homepage || Boolean(slug), retry: 1,
     queryFn: async () => { const res = await axiosSecure.get(homepage ? '/api/landing-pages/public/homepage' : `/api/landing-pages/public/${encodeURIComponent(slug)}`); return res.data.data || res.data; },
   });
+
   const { data: shippingSettings, isLoading: shippingLoading, isError: shippingError } = useQuery({
     queryKey: ['public-shipping-settings'],
     queryFn: async () => { const res = await axiosSecure.get('/api/shipping-settings'); return res.data?.data || res.data; },
@@ -77,6 +111,7 @@ export default function LandingPageView() {
   const show = (key) => page.content?.sectionVisibility?.[key] !== false;
   const goCheckout = () => document.getElementById('checkout')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const update = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
+
   const submit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -103,66 +138,105 @@ export default function LandingPageView() {
   const design = page.content?.design || {};
   const details = design.details?.length ? design.details : defaultDetails;
   const users = design.users?.length ? design.users : defaultUsers;
-  const heroImage = page.hero?.image || design.heroImage || fallbackOne;
-  const showcaseImage = design.showcaseImage || fallbackExtra;
   const bottomImage = design.bottomImage || fallbackTwo;
 
   return (
     <main id="home" className="mx-auto min-h-screen max-w-[1100px] bg-white text-neutral-950" style={{ fontFamily: "'Hind Siliguri','Noto Sans Bengali',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800;900&display=swap');
       .bb-field{width:100%;min-height:46px;padding:10px 12px 10px 44px;border:1px solid #d4d4d4;border-radius:8px;background:white;outline-offset:2px}
-      .bb-shadow-cta{box-shadow:0 4px 0 #a80000,0 8px 15px #0002}`}</style>
+      .bb-shadow-cta{box-shadow:0 4px 0 #a80000,0 8px 15px #0002}
+      .marker{background:#ffe000;padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+      .shadow-cta{box-shadow:0 4px 0 #a80000,0 8px 15px #0002}`}</style>
       
-      {show('header') && <header className="absolute left-1/2 z-20 flex w-full max-w-[1100px] -translate-x-1/2 items-center justify-between px-5 py-4">
-        <a href="#home" className="flex items-center gap-2"><span className="flex size-10 items-center justify-center rounded-full bg-white/85"><FiTool size={24} /></span><span className="leading-none"><b className="block text-[23px] font-black">{design.brandName || 'বাড়িবন্ধু'}</b><span className="block text-center text-[8px] font-bold tracking-[.27em]">{design.brandSubtitle || 'ENTERPRISE'}</span></span></a>
-        <button type="button" aria-label="মেনু" onClick={() => setMenuOpen(v => !v)} className="rounded-full bg-white/85 p-2.5">{menuOpen ? <FiX size={23} /> : <FiMenu size={23} />}</button>
-        {menuOpen && <nav className="absolute right-4 top-[75px] flex min-w-44 flex-col gap-3 rounded-xl bg-white p-5 font-bold shadow-xl"><a href="#features" onClick={() => setMenuOpen(false)}>বিস্তারিত</a><a href="#users" onClick={() => setMenuOpen(false)}>যাদের জন্য</a><a href="#checkout" onClick={() => setMenuOpen(false)}>অর্ডার করুন</a></nav>}
-      </header>}
+      {/* Dynamic Header using BRAND_LOGO */}
+      {show('header') && (
+        <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-neutral-100 bg-white px-4 py-2.5 sm:px-8 sm:py-3">
+          <a href="#home" aria-label="বাড়িবন্ধু Enterprise" className="flex items-center">
+            <img 
+              src={design.logoUrl || BRAND_LOGO} 
+              alt="বাড়িবন্ধু Enterprise" 
+              className="h-[38px] w-auto max-w-[130px] object-contain sm:h-[50px] sm:max-w-[160px]" 
+            />
+          </a>
+          <button 
+            type="button" 
+            aria-label="মেনু" 
+            onClick={() => setMenuOpen(v => !v)} 
+            className="flex items-center justify-center p-1.5 text-neutral-900 transition hover:text-neutral-700"
+          >
+            {menuOpen ? <FiX size={26} /> : <FiMenu size={26} />}
+          </button>
+          {menuOpen && (
+            <nav className="absolute right-4 top-[56px] flex min-w-44 flex-col gap-3 rounded-xl bg-white p-5 font-bold shadow-2xl sm:top-[68px]">
+              <a href="#features" onClick={() => setMenuOpen(false)}>বিস্তারিত</a>
+              <a href="#users" onClick={() => setMenuOpen(false)}>যাদের জন্য</a>
+              <a href="#checkout" onClick={() => setMenuOpen(false)}>অর্ডার করুন</a>
+            </nav>
+          )}
+        </header>
+      )}
 
-      {show('hero') && <>
-        <section className="relative min-h-[720px] overflow-hidden bg-[#ece9e1] sm:min-h-[760px] lg:min-h-[700px]">
-          <div className="absolute inset-0 bg-contain bg-center bg-no-repeat opacity-90 lg:bg-right" style={{ backgroundImage: `url(${heroImage})` }} />
-          <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/65 to-transparent lg:from-white/95 lg:via-white/45" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#fffefa] via-transparent to-transparent" />
-          <div className="relative z-10 flex min-h-[720px] flex-col justify-end px-5 pb-6 pt-32 sm:px-10 lg:min-h-[700px] lg:w-[58%] lg:justify-center lg:pb-12">
-            <div className="mb-5"><h1 className="max-w-[500px] whitespace-pre-line text-[clamp(40px,9vw,80px)] font-black leading-[1.13] tracking-tight">{page.hero?.headline || 'কাজের\nসময়\nসব টুল\nহাতের কাছে'}</h1><p className="mt-4 whitespace-pre-line text-[20px] font-bold leading-tight sm:text-[24px]">{page.hero?.subHeadline || 'প্রফেশনাল টুল\nওয়েস্ট ব্যাগ'}</p></div>
-            <div className="mb-5 flex max-w-[410px] justify-between gap-1"><InfoIcon Icon={FiPackage} title="বহু পকেট" /><InfoIcon Icon={FiShield} title="মজবুত" description="ও টেকসই" /><InfoIcon Icon={FiFeather} title="হালকা" description="ও আরামদায়ক" /></div>
-            <div className="text-center"><div className="mx-auto w-fit -rotate-3 bg-[#ffe000] px-8 py-1">{oldPrice > price && <div className="text-[24px] font-extrabold text-black/80 line-through">{money(oldPrice)}</div>}<div className="text-[56px] font-black leading-none">{money(price)}</div></div><button type="button" onClick={goCheckout} className="bb-shadow-cta mx-auto mt-4 flex items-center justify-center gap-2 rounded-xl bg-[#f00] px-8 py-3 text-[21px] font-extrabold text-white hover:bg-red-700"><FiShoppingCart size={25} />{page.hero?.buttonText || 'অর্ডার করুন'} ›</button></div>
-          </div>
-        </section>
-      </>}
+      {show('hero') && (
+        <>
+          <section className="relative overflow-hidden bg-[#ece9e1]">
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90 lg:bg-contain lg:bg-right" 
+              style={{ backgroundImage: `url(${IMAGE_ONE})` }} 
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/75 to-white/30 lg:from-white/95 lg:via-white/45 lg:to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#fffefa] via-transparent to-transparent" />
 
-      {show('showcase') && <section className="bg-white px-3 pb-5 sm:px-8"><img src={showcaseImage} alt={product.productName || 'প্রোডাক্ট'} className="h-[240px] w-full rounded-2xl bg-[#ece9e1] object-contain sm:h-[370px] lg:h-[460px]" /></section>}
-      
+            <div className="relative z-10 flex flex-col justify-end px-4 pb-6 pt-8 sm:px-10 sm:pt-16 lg:min-h-[640px] lg:w-[58%] lg:justify-center lg:pb-12">
+              <div className="mb-4 sm:mb-5">
+                <h1 className="max-w-[500px] text-[clamp(32px,8vw,80px)] font-black leading-[1.15] tracking-tight">
+                  কাজের<br />সময়<br />সব টুল<br />
+                  <span className="marker inline-block -rotate-2">হাতের কাছে</span>
+                </h1>
+                <p className="mt-3 text-[18px] font-bold leading-tight sm:mt-4 sm:text-[24px]">
+                  প্রফেশনাল টুল<br />ওয়েস্ট ব্যাগ
+                </p>
+              </div>
+
+              <div className="mb-4 flex max-w-[410px] justify-between gap-1 sm:mb-5">
+                <HeroIconText Icon={Package} title="বহু পকেট" />
+                <HeroIconText Icon={ShieldCheck} title="মজবুত" description="ও টেকসই" />
+                <HeroIconText Icon={Feather} title="হালকা" description="ও আরামদায়ক" />
+              </div>
+
+              <div className="text-center">
+                <div className="mx-auto w-fit -rotate-3 bg-[#ffe000] px-6 py-1 sm:px-8">
+                  {oldPrice > price && <div className="text-[18px] font-extrabold text-black/80 line-through decoration-2 sm:text-[24px]">{money(oldPrice)}</div>}
+                  <div className="text-[42px] font-black leading-none sm:text-[56px]">{money(price)}</div>
+                </div>
+                <button type="button" onClick={goCheckout} className="shadow-cta mx-auto mt-4 flex items-center justify-center gap-2 rounded-xl bg-[#f00] px-6 py-2.5 text-[18px] font-extrabold text-white hover:bg-red-700 sm:px-8 sm:py-3 sm:text-[21px]">
+                  <ShoppingCart size={22} />অর্ডার করুন <span aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="w-full bg-white px-0 py-0 sm:px-4 sm:py-4">
+            <img 
+              src={IMAGE_TWO} 
+              alt="প্রফেশনাল ওয়েস্ট টুল ব্যাগ" 
+              className="h-auto w-full rounded-none object-contain sm:rounded-2xl" 
+            />
+          </section>
+        </>
+      )}
+
       {show('details') && (
-        <section
-          id="features"
-          className="px-4 py-6 sm:px-8"
-        >
-          <h2 className="section-heading mb-6 text-[26px] font-black">
+        <section id="features" className="px-4 py-5 sm:px-8 sm:py-6">
+          <h2 className="section-heading mb-4 text-[22px] font-black sm:mb-6 sm:text-[26px]">
             {design.detailsTitle || 'প্রোডাক্টের বিস্তারিত'}
           </h2>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {details.map((x, i) => (
-              <article
-                key={i}
-                className="overflow-hidden rounded-xl bg-[#f6f6f6] pb-3 text-center"
-              >
-                <img
-                  src={x.image || fallbackOne}
-                  alt={x.title || ''}
-                  className="h-auto w-full object-cover"
-                  loading="lazy"
-                />
-
-                <h3 className="mt-2 text-[18px] font-extrabold leading-tight">
-                  {x.title}
-                </h3>
-
-                <p className="text-[15px] font-semibold leading-tight">
-                  {x.subtitle}
-                </p>
+              <article key={i} className="overflow-hidden rounded-xl bg-[#f6f6f6] pb-3 text-center">
+                <img src={x.image || fallbackOne} alt={x.title || ''} className="h-auto w-full object-cover" loading="lazy" />
+                <h3 className="mt-2 text-[16px] font-extrabold leading-tight sm:text-[18px]">{x.title}</h3>
+                <p className="text-[13px] font-semibold leading-tight sm:text-[15px]">{x.subtitle}</p>
               </article>
             ))}
           </div>
@@ -170,52 +244,80 @@ export default function LandingPageView() {
       )}
 
       {show('users') && (
-        <section
-          id="users"
-          className="px-4 py-6 sm:px-8"
-        >
-          <h2 className="section-heading mb-6 text-[26px] font-black">
+        <section id="users" className="px-4 py-5 sm:px-8 sm:py-6">
+          <h2 className="section-heading mb-4 text-[22px] font-black sm:mb-6 sm:text-[26px]">
             {design.usersTitle || 'যাদের জন্য উপযোগী'}
           </h2>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {users.map((x, i) => (
-              <article
-                key={i}
-                className="overflow-hidden rounded-xl bg-[#f6f6f6] pb-3 text-center"
-              >
-                <img
-                  src={x.image || fallbackOne}
-                  alt={x.name || ''}
-                  className="h-auto w-full object-cover"
-                  loading="lazy"
-                />
-
-                <h3 className="mt-2 text-[18px] font-extrabold leading-tight">
-                  {x.name}
-                </h3>
+              <article key={i} className="overflow-hidden rounded-xl bg-[#f6f6f6] pb-3 text-center">
+                <img src={x.image || fallbackOne} alt={x.name || ''} className="h-auto w-full object-cover" loading="lazy" />
+                <h3 className="mt-2 text-[16px] font-extrabold leading-tight sm:text-[18px]">{x.name}</h3>
               </article>
             ))}
           </div>
         </section>
       )}
 
-      {show('bottomBanner') && <section className="px-2 py-5 sm:px-8"><img src={bottomImage} alt="প্রোডাক্ট ব্যানার" className="block h-auto w-full rounded-2xl" loading="lazy" /></section>}
+      {show('bottomBanner') && (
+        <section className="px-2 py-3 sm:px-8 sm:py-5">
+          <img src={bottomImage} alt="প্রোডাক্ট ব্যানার" className="block h-auto w-full rounded-2xl" loading="lazy" />
+        </section>
+      )}
 
-      {show('delivery') && <section className="grid grid-cols-2 gap-3 px-4 py-3 sm:px-8"><div className="flex items-center justify-center gap-3 rounded-xl bg-[#f5f5f5] p-3"><FiTruck size={40} /><div className="text-sm font-bold leading-tight">ঢাকার ভিতরে<br />ডেলিভারি<br /><strong className="text-2xl">{money(inside)}</strong></div></div><div className="flex items-center justify-center gap-3 rounded-xl bg-[#f5f5f5] p-3"><FiTruck size={40} /><div className="text-sm font-bold leading-tight">ঢাকার বাইরে<br />ডেলিভারি<br /><strong className="text-2xl">{money(outside)}</strong></div></div></section>}
+      {show('delivery') && (
+        <section className="grid grid-cols-2 gap-3 px-4 py-3 sm:px-8">
+          <div className="flex items-center justify-center gap-3 rounded-xl bg-[#f5f5f5] p-3">
+            <FiTruck size={36} />
+            <div className="text-xs font-bold leading-tight sm:text-sm">ঢাকার ভিতরে<br />ডেলিভারি<br /><strong className="text-xl sm:text-2xl">{money(inside)}</strong></div>
+          </div>
+          <div className="flex items-center justify-center gap-3 rounded-xl bg-[#f5f5f5] p-3">
+            <FiTruck size={36} />
+            <div className="text-xs font-bold leading-tight sm:text-sm">ঢাকার বাইরে<br />ডেলিভারি<br /><strong className="text-xl sm:text-2xl">{money(outside)}</strong></div>
+          </div>
+        </section>
+      )}
 
-      {<div className="mx-auto max-w-[660px] px-3 pb-3 pt-3 sm:px-6"><section id="checkout" className="scroll-mt-4 rounded-[16px] border-2 border-[#ffdd00] bg-white p-[5px] shadow-sm"><div className="rounded-t-[10px] bg-[#ffdc00] py-2 text-center text-[20px] font-black"><FiShoppingCart className="mr-2 inline-block" /> প্রথমেই অর্ডার করুন</div>
-        <form onSubmit={submit} className="space-y-3 p-3 sm:p-5">
-          <div className="relative"><FiUser className="absolute left-3 top-3 size-5 text-neutral-500" /><input className="bb-field" required minLength={2} autoComplete="name" aria-label="আপনার নাম" value={form.name} onChange={e => update('name', e.target.value)} placeholder="আপনার নাম" /></div>
-          <div className="relative"><FiPhone className="absolute left-3 top-3 size-5 text-neutral-500" /><input className="bb-field" required type="tel" inputMode="numeric" autoComplete="tel" aria-label="মোবাইল নাম্বার" value={form.mobile} onChange={e => update('mobile', e.target.value)} placeholder="মোবাইল নাম্বার" /></div>
-          <div className="relative"><FiTruck className="absolute left-3 top-3 size-5 text-neutral-500" /><select className="bb-field" aria-label="ডেলিভারি এলাকা" value={shippingOption} onChange={e => setShippingOption(e.target.value)}><option value="inside">ঢাকার ভিতরে ({money(inside)})</option><option value="outside">ঢাকার বাইরে ({money(outside)})</option></select></div>
-          <div className="relative"><FiMapPin className="absolute left-3 top-3 size-5 text-neutral-500" /><textarea className="bb-field min-h-[86px] resize-y" required aria-label="সম্পূর্ণ ঠিকানা" value={form.address} onChange={e => update('address', e.target.value)} placeholder="সম্পূর্ণ ঠিকানা লিখুন" /></div>
-          <div className="rounded-lg bg-neutral-50 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs text-neutral-500">পরিমাণ</p><p className="font-bold">{product.productName}</p></div><div className="flex items-center overflow-hidden rounded-lg border border-neutral-200 bg-white"><button type="button" className="px-3 py-2" aria-label="পরিমাণ কমান" onClick={() => setQuantity(q => Math.max(1, q - 1))}><FiMinus /></button><strong className="min-w-7 text-center">{quantity}</strong><button type="button" className="px-3 py-2" aria-label="পরিমাণ বাড়ান" onClick={() => setQuantity(q => q + 1)}><FiPlus /></button></div></div><div className="mt-2 flex justify-between border-t pt-2 text-sm"><span>পণ্য {money(subtotal)} + ডেলিভারি {money(shipping)}</span><strong className="text-[17px]">মোট {money(total)}</strong></div></div>
-          <button type="submit" disabled={submitting || shippingLoading || shippingError} className="bb-shadow-cta flex w-full items-center justify-center gap-2 rounded-lg bg-[#f00] py-3 text-[19px] font-extrabold text-white transition hover:bg-red-700 disabled:opacity-50"><FiShoppingCart size={24} />{submitting ? 'অর্ডার হচ্ছে...' : 'অর্ডার কনফার্ম করুন'}</button>
-          {shippingError && <p role="alert" className="text-sm text-red-700">ডেলিভারি চার্জ পাওয়া যাচ্ছে না। রিফ্রেশ করুন।</p>}
-        </form></section></div>}
+      <div className="mx-auto max-w-[660px] px-3 pb-3 pt-3 sm:px-6">
+        <section id="checkout" className="scroll-mt-4 rounded-[16px] border-2 border-[#ffdd00] bg-white p-[5px] shadow-sm">
+          <div className="rounded-t-[10px] bg-[#ffdc00] py-2 text-center text-[18px] font-black sm:text-[20px]">
+            <FiShoppingCart className="mr-2 inline-block" /> প্রথমেই অর্ডার করুন
+          </div>
+          <form onSubmit={submit} className="space-y-3 p-3 sm:p-5">
+            <div className="relative"><FiUser className="absolute left-3 top-3 size-5 text-neutral-500" /><input className="bb-field" required minLength={2} autoComplete="name" aria-label="আপনার নাম" value={form.name} onChange={e => update('name', e.target.value)} placeholder="আপনার নাম" /></div>
+            <div className="relative"><FiPhone className="absolute left-3 top-3 size-5 text-neutral-500" /><input className="bb-field" required type="tel" inputMode="numeric" autoComplete="tel" aria-label="মোবাইল নাম্বার" value={form.mobile} onChange={e => update('mobile', e.target.value)} placeholder="মোবাইল নাম্বার" /></div>
+            <div className="relative"><FiTruck className="absolute left-3 top-3 size-5 text-neutral-500" /><select className="bb-field" aria-label="ডেলিভারি এলাকা" value={shippingOption} onChange={e => setShippingOption(e.target.value)}><option value="inside">ঢাকার ভিতরে ({money(inside)})</option><option value="outside">ঢাকার বাইরে ({money(outside)})</option></select></div>
+            <div className="relative"><FiMapPin className="absolute left-3 top-3 size-5 text-neutral-500" /><textarea className="bb-field min-h-[86px] resize-y" required aria-label="সম্পূর্ণ ঠিকানা" value={form.address} onChange={e => update('address', e.target.value)} placeholder="সম্পূর্ণ ঠিকানা লিখুন" /></div>
+            <div className="rounded-lg bg-neutral-50 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div><p className="text-xs text-neutral-500">পরিমাণ</p><p className="font-bold">{product.productName}</p></div>
+                <div className="flex items-center overflow-hidden rounded-lg border border-neutral-200 bg-white">
+                  <button type="button" className="px-3 py-2" aria-label="পরিমাণ কমান" onClick={() => setQuantity(q => Math.max(1, q - 1))}><FiMinus /></button>
+                  <strong className="min-w-7 text-center">{quantity}</strong>
+                  <button type="button" className="px-3 py-2" aria-label="পরিমাণ বাড়ান" onClick={() => setQuantity(q => q + 1)}><FiPlus /></button>
+                </div>
+              </div>
+              <div className="mt-2 flex justify-between border-t pt-2 text-sm">
+                <span>পণ্য {money(subtotal)} + ডেলিভারি {money(shipping)}</span>
+                <strong className="text-[17px]">মোট {money(total)}</strong>
+              </div>
+            </div>
+            <button type="submit" disabled={submitting || shippingLoading || shippingError} className="bb-shadow-cta flex w-full items-center justify-center gap-2 rounded-lg bg-[#f00] py-3 text-[19px] font-extrabold text-white transition hover:bg-red-700 disabled:opacity-50">
+              <FiShoppingCart size={24} />{submitting ? 'অর্ডার হচ্ছে...' : 'অর্ডার কনফার্ম করুন'}
+            </button>
+            {shippingError && <p role="alert" className="text-sm text-red-700">ডেলিভারি চার্জ পাওয়া যাচ্ছে না। রিফ্রেশ করুন।</p>}
+          </form>
+        </section>
+      </div>
 
-      {show('footer') && <footer className="grid grid-cols-3 gap-2 px-3 py-5 text-center sm:px-8"><InfoIcon Icon={FiPackage} title="নিরাপদ" description="ডেলিভারি" /><InfoIcon Icon={FiShield} title="কোয়ালিটি" description="প্রোডাক্ট" /><InfoIcon Icon={FiCheckCircle} title="সহজ" description="অর্ডার প্রসেস" /></footer>}
+      {show('footer') && (
+        <footer className="grid grid-cols-3 gap-2 px-3 py-5 text-center sm:px-8">
+          <InfoIcon Icon={FiPackage} title="নিরাপদ" description="ডেলিভারি" />
+          <InfoIcon Icon={FiShield} title="কোয়ালিটি" description="প্রোডাক্ট" />
+          <InfoIcon Icon={FiCheckCircle} title="সহজ" description="অর্ডার প্রসেস" />
+        </footer>
+      )}
     </main>
   );
 }
